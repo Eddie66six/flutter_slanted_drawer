@@ -1,3 +1,3 @@
 # flutter_slanted_drawer
 
-![](gif.gif =250x417)
+![](gif.gif){ width=50% }
