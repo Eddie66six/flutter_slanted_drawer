@@ -1,3 +1,3 @@
 # flutter_slanted_drawer
 
-![](gif.gif)
+![](gif.gif =x250)
