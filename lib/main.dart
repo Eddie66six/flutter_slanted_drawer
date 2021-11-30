@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 void main() {
@@ -17,20 +15,32 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(),
+      home: const StructPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({ Key? key }) : super(key: key);
+class _StructPageEvent extends ChangeNotifier {
+  _StructPageEvent._();
+  static _StructPageEvent? _intance;
+  static _StructPageEvent get to => _intance ??= _StructPageEvent._();
 
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
+  bool _isOpend = false;
+  bool get isOpened => _isOpend;
+  void openCloseDrawer(){
+    _isOpend = !_isOpend;
+    notifyListeners();
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin  {
-  bool isOpend = false;
+class StructPage extends StatefulWidget {
+  const StructPage({ Key? key }) : super(key: key);
+
+  @override
+  _StructPageState createState() => _StructPageState();
+}
+
+class _StructPageState extends State<StructPage> with SingleTickerProviderStateMixin  {
   late AnimationController controller;
   AnimationController? drawerController;
   AnimationController? drawerListController;
@@ -47,6 +57,19 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       vsync: this,
     );
     controller.addListener(() {setState(() {});});
+    _StructPageEvent.to.addListener(() {
+      setState(() {
+        if(_StructPageEvent.to.isOpened){
+          controller.forward();
+          drawerController?.forward();
+          drawerListController?.forward();
+        }else{
+          controller.reverse();
+          drawerController?.reverse();
+          drawerListController?.reverse();
+        }
+      });
+    });
     super.initState();
   }
 
@@ -61,7 +84,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     var size = MediaQuery.of(context).size;
     var drawerWidth = size.width;
     if(rotate == null){
-      rotate = Tween<double>(begin: 1.0, end: 0.98).animate(controller);
+      rotate = Tween<double>(begin: 0.0, end: -30).animate(controller);
       pageLeftMargin = Tween<double>(begin: 0.0, end: 1.0).animate(controller);
       pageTopMargin = Tween<double>(begin: 0.0, end: 80).animate(controller);
       drawerMargin = Tween<double>(begin: -drawerWidth, end: 0.0).animate(controller);
@@ -90,11 +113,12 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                 top: pageTopMargin!.value,
                 left: (drawerWidth * 0.6 + 30) * pageLeftMargin!.value,
                 child: Transform.rotate(
-                  angle: -pi / rotate!.value,
+                  angle: rotate!.value/360,
                   child: Container(
-                    height: size.height,
                     width: size.width,
-                    color: Colors.grey,
+                    height: size.height,
+                    color: Colors.grey.shade400,
+                    child: const HomePage()
                   ),
                 ),
               ),
@@ -105,27 +129,61 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                 child: GestureDetector(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-                    child: Icon(isOpend ? Icons.arrow_back : Icons.arrow_forward, color: Colors.white),
+                    child: Icon(_StructPageEvent.to.isOpened ? Icons.arrow_back : Icons.arrow_forward, color: Colors.white),
                   ),
                   onTap: (){
-                    setState(() {
-                      isOpend = !isOpend;
-                      if(isOpend){
-                        controller.forward();
-                        drawerController?.forward();
-                        drawerListController?.forward();
-                      }else{
-                        controller.reverse();
-                        drawerController?.reverse();
-                        drawerListController?.reverse();
-                      }
-                    });
+                    _StructPageEvent.to.openCloseDrawer();
                   },
                 ),
               ),
             ],
           ),
         )
+      ),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({ Key? key }) : super(key: key);
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 25, bottom: 20),
+            child: Text("Home", style: TextStyle(color: Colors.white)),
+          ),
+          Container(
+            color: Colors.red,
+            width: MediaQuery.of(context).size.width,
+            height: 100,
+          ),
+          const SizedBox(height: 50),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                color: Colors.blue,
+                width: MediaQuery.of(context).size.width/2- 32,
+                height: 150,
+              ),
+              Container(
+                color: Colors.green,
+                width: MediaQuery.of(context).size.width/2- 32,
+                height: 150,
+              )
+            ],
+          )
+        ],
       ),
     );
   }
@@ -147,6 +205,8 @@ class DrawerWidget extends StatefulWidget {
 class _DrawerWidgetState extends State<DrawerWidget> with TickerProviderStateMixin {
   late AnimationController controller;
   late AnimationController listController;
+  var listMenuItens = <_DrawerItemModel>[];
+  var selectedIndex = 0;
 
   @override
   void initState() {
@@ -160,6 +220,18 @@ class _DrawerWidgetState extends State<DrawerWidget> with TickerProviderStateMix
     );
     controller.addListener(() {setState(() {});});
     widget.callbackOnInit(controller, listController);
+    listMenuItens = [
+      _DrawerItemModel(icon: const Icon(Icons.home, color: Colors.white),
+        label: const Text("Home", style: TextStyle(fontSize: 18, color: Colors.grey))),
+      _DrawerItemModel(icon: const Icon(Icons.dashboard, color: Colors.white),
+        label: const Text("dashboard", style: TextStyle(fontSize: 18, color: Colors.grey))),
+      _DrawerItemModel(icon: const Icon(Icons.calendar_today, color: Colors.white),
+        label: const Text("Agenda", style: TextStyle(fontSize: 18, color: Colors.grey))),
+      _DrawerItemModel(icon: const Icon(Icons.notifications, color: Colors.white),
+        label: const Text("Notificações", style: TextStyle(fontSize: 18, color: Colors.grey))),
+      _DrawerItemModel(icon: const Icon(Icons.settings, color: Colors.white),
+        label: const Text("Configuração", style: TextStyle(fontSize: 18, color: Colors.grey)))
+    ];
     super.initState();
   }
 
@@ -200,16 +272,43 @@ class _DrawerWidgetState extends State<DrawerWidget> with TickerProviderStateMix
               ],
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 35),
           if(listController.isCompleted)
-          Column(
-            children: List.generate(5, (index) {
-              return _DrawerItem(
-                icon: const Icon(Icons.ac_unit),
-                label: Text("hhh $index"),
-                millisecondsDelay: 150 * index,
-              );
-            })
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  children: List.generate(listMenuItens.length, (index) {
+                    var item = listMenuItens[index];
+                    return GestureDetector(
+                      onTap: (){
+                        setState(() {
+                          selectedIndex = index;
+                        });
+                        Future.delayed(const Duration(milliseconds: 200), (){
+                          _StructPageEvent.to.openCloseDrawer();
+                        });
+                      },
+                      child: _DrawerItem(
+                        selected: index == selectedIndex,
+                        model: item,
+                        millisecondsDelay: 50 * index,
+                      ),
+                    );
+                  })
+                ),
+                ScaleTransition(
+                  scale: Tween<double>(begin: 0.0, end: 1.0)
+                    .animate(CurvedAnimation(parent: controller, curve: Curves.elasticInOut)),
+                  child: const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text("Sair", style: TextStyle(fontSize: 20, color: Colors.white)),
+                  ),
+                )
+              ],
+            ),
           )
         ]
       ),
@@ -217,15 +316,24 @@ class _DrawerWidgetState extends State<DrawerWidget> with TickerProviderStateMix
   }
 }
 
-class _DrawerItem extends StatefulWidget {
+class _DrawerItemModel {
   final Widget icon;
   final Widget label;
-  final int millisecondsDelay;
-  const _DrawerItem({
-    Key? key,
+  _DrawerItemModel({
     required this.icon,
     required this.label,
+  });
+}
+
+class _DrawerItem extends StatefulWidget {
+  final _DrawerItemModel model;
+  final int millisecondsDelay;
+  final bool selected;
+  const _DrawerItem({
+    Key? key,
+    required this.model,
     required this.millisecondsDelay,
+    required this.selected,
   }) : super(key: key);
 
   @override
@@ -259,13 +367,19 @@ class _DrawerItemState extends State<_DrawerItem> with SingleTickerProviderState
     return FadeTransition(
       opacity: Tween<double>(begin: 0, end: 1).animate(controller),
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            widget.icon,
-            const SizedBox(width: 5),
-            widget.label
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 15),
+        child: Container(
+          decoration: !widget.selected ? null :
+            const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.white, width: .3))
+          ),
+          child: Row(
+            children: [
+              widget.model.icon,
+              const SizedBox(width: 5),
+              widget.model.label,
+            ],
+          ),
         ),
       ),
     );
